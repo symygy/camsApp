@@ -21,7 +21,7 @@ POLLUTANTS = [
 TYPE = {
     'a': ['analysis'],
     'f': ['forecast'],
-    'b': ['analysis', 'forecast']
+    # 'b': ['analysis', 'forecast'] TODO
 }
 
 
@@ -136,8 +136,8 @@ def get_polls_from_data(temp_data: nc.Dataset) -> list:
 
 if __name__ == '__main__':
     arg_parser = ArgumentParser()
-    arg_parser.add_argument('type', choices=['a', 'f', 'b'],
-                            help='Type: "a" for analysis, "f" for forecast, "b" for both')
+    arg_parser.add_argument('type', choices=['a', 'f'],
+                            help='Type: "a" for analysis, "f" for forecast')
     arg_parser.add_argument('start_date', help='Start date [yyyy-mm-dd]', metavar='startDate')
     arg_parser.add_argument('end_date', help='End date [yyyy-mm-dd]', metavar='endDate')
     arg_parser.add_argument('lat', help='Latitude [0 - 90]', type=float)
