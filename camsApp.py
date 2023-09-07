@@ -32,25 +32,17 @@ def calc_interval() -> list:
     return [(f'0{t}:00' if len(str(t)) == 1 else f'{t}:00') for t in range(0, 24, args.interval)]
 
 
-def get_rounded(num: float, base: float = 0.05, rounding=ROUND_UP) -> float:
-    """
-    :param num: float value
-    :param base: rounding base
-    :param rounding: determines if we want to round up or down
-    :return: the closest value according to num and base params
-    """
-    base = Decimal(base)
-    return float(base * (Decimal(num) / base).quantize(1, rounding=rounding))
-
-
 def get_boundary_box() -> map:
     """
     :return: map object with boundary box created according to provided latitude and longitude value
     """
-    n = get_rounded(args.lat, rounding=ROUND_UP)
-    w = get_rounded(args.long, rounding=ROUND_DOWN)
-    s = get_rounded(args.lat, rounding=ROUND_DOWN)
-    e = get_rounded(args.long, rounding=ROUND_UP)
+
+    args.lat = round(args.lat - 0.05, 1)
+    args.long = round(args.long - 0.05, 1)
+    n = args.lat + 0.1
+    s = args.lat
+    w = args.long
+    e = args.long + 0.1
 
     return map(lambda x: round(x, 2), [n, w, s, e])
 
@@ -145,7 +137,6 @@ if __name__ == '__main__':
     arg_parser.add_argument('-i', '--interval', help='Time interval in hours. Start at 00:00', type=int, default=4,
                             metavar='')
     args = arg_parser.parse_args()
-
     print('Downloading data \n')
     download_data_file()
     print(f'\nData downloaded and saved to: {NC_FILENAME}.nc  \n')
