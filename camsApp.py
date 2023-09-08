@@ -1,7 +1,7 @@
 import json
 import netCDF4 as nc
 import os
-from decimal import Decimal, ROUND_UP, ROUND_DOWN
+import itertools
 
 import cdsapi
 from argparse import ArgumentParser
@@ -32,19 +32,20 @@ def calc_interval() -> list:
     return [(f'0{t}:00' if len(str(t)) == 1 else f'{t}:00') for t in range(0, 24, args.interval)]
 
 
-def get_boundary_box() -> map:
-    """
-    :return: map object with boundary box created according to provided latitude and longitude value
-    """
+def get_boundary_box():
+    lats = []
+    longs = []
 
-    args.lat = round(args.lat - 0.05, 1)
-    args.long = round(args.long - 0.05, 1)
-    n = args.lat + 0.1
-    s = args.lat
-    w = args.long
-    e = args.long + 0.1
+    for coord in args.coords:
+        lats.append(round(coord[0] - 0.05, 1))
+        longs.append(round(coord[1] - 0.05, 1))
 
-    return map(lambda x: round(x, 2), [n, w, s, e])
+    lat_min = min(lats)
+    lat_max = max(lats)
+    long_min = min(longs)
+    long_max = max(longs)
+
+    return [lat_max+0.1, long_min, lat_min, long_max+0.1]
 
 
 def download_data_file():
@@ -68,13 +69,13 @@ def download_data_file():
         f'{NC_FILENAME}.nc')
 
 
-def save_json(temp_data: nc.Dataset):
+def save_json(nc_data: nc.Dataset):
     """
     Creates .json file with data from downloaded .nc file
-    :param temp_data: dataset from netCDF file
+    :param nc_data: dataset from netCDF file
     """
     with open(f'{JSON_FILENAME}.json', 'w') as f:
-        f.writelines(prepare_json(temp_data))
+        f.writelines(prepare_json(nc_data))
 
 
 def read_nc_data() -> nc.Dataset:
@@ -85,30 +86,42 @@ def read_nc_data() -> nc.Dataset:
     return nc.Dataset(f'{os.getcwd()}/{NC_FILENAME}.nc')
 
 
-def prepare_json(temp_data: nc.Dataset) -> json.encoder:
-    """
-    Creates a json formatted data
-    :param temp_data: dataset from netCDF file
-    :return: data in json format
-    """
-    polls = get_polls_from_data(temp_data)
+def prepare_json(nc_data: nc.Dataset) -> json.encoder:
+    polls = get_polls_from_data(nc_data)
     result = {}
-    temp_result = {}
+    poll_objects = []
+    data_row = {}
+
+    t = nc_data.variables["time"][:]
+    lats = nc_data.variables["latitude"][:]
+    longs = nc_data.variables["longitude"][:]
 
     for pol in polls:
-        for i, t in enumerate(temp_data.variables['time']):
-            temp_result.update({f'{t}': round(temp_data.variables[pol][i].__float__(), 3)})
-        result[pol] = {'unit': temp_data.variables[pol].units, 'readings': temp_result}
+        arr = nc_data.variables[pol][:]
+        time, lvl, lat, long = arr.shape
+
+        for i, j, k in itertools.product(range(time), range(lat), range(long)):
+            value = arr[i, 0, j, k]
+            data_row.update({f'{t[i]}': str(value)})
+            temp_obj = {
+                "lat": str(lats[j]),
+                "long": str(longs[k]),
+                "data": data_row
+            }
+            if temp_obj not in poll_objects:
+                poll_objects.append(temp_obj)
+
+        result[pol] = poll_objects
 
     return json.dumps(result)
 
 
-def get_polls_from_data(temp_data: nc.Dataset) -> list:
+def get_polls_from_data(nc_data: nc.Dataset) -> list:
     """
-    :param temp_data: dataset from netCDF file
+    :param nc_data: dataset from netCDF file
     :return: List of pollutants found in .netCDF dataset file
     """
-    return [poll for poll in temp_data.variables.keys() if poll not in ['longitude', 'latitude', 'level', 'time']]
+    return [poll for poll in nc_data.variables.keys() if poll not in ['longitude', 'latitude', 'level', 'time']]
 
 
 # def get_lats_and_longs_from_data(temp_data) -> dict:
@@ -134,9 +147,14 @@ if __name__ == '__main__':
     arg_parser.add_argument('end_date', help='End date [yyyy-mm-dd]', metavar='endDate')
     arg_parser.add_argument('lat', help='Latitude [0 - 90]', type=float)
     arg_parser.add_argument('long', help='Longitude [0 - 180]', type=float)
+    arg_parser.add_argument('coords', type=lambda a: tuple(map(float, a.split(','))), nargs='+')
     arg_parser.add_argument('-i', '--interval', help='Time interval in hours. Start at 00:00', type=int, default=4,
                             metavar='')
     args = arg_parser.parse_args()
+
+    # TEST COORDS
+    # py camsApp.py a 2023-09-01 2023-09-02 50.0692 19.9667 49.997800,19.895500 50.066400,20.017300 50.026694,19.896000 50.083900,19.898800
+
     print('Downloading data \n')
     download_data_file()
     print(f'\nData downloaded and saved to: {NC_FILENAME}.nc  \n')
