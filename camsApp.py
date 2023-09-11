@@ -134,7 +134,7 @@ if __name__ == '__main__':
     arg_parser.add_argument('end_date', help='End date [yyyy-mm-dd]', metavar='endDate')
     arg_parser.add_argument('lat', help='Latitude [0 - 90]', type=float)
     arg_parser.add_argument('long', help='Longitude [0 - 180]', type=float)
-    arg_parser.add_argument('coords', type=lambda a: tuple(map(float, a.split(','))), nargs='+')
+    arg_parser.add_argument('coords', type=lambda a: tuple(map(float, a.split(','))), nargs='+', help="List of coords in format: lat.lat,long.long separated by spaces.")
     arg_parser.add_argument('-i', '--interval', help='Time interval in hours. Start at 00:00', type=int, default=4,
                             metavar='')
     args = arg_parser.parse_args()
