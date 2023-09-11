@@ -89,29 +89,33 @@ def read_nc_data() -> nc.Dataset:
 def prepare_json(nc_data: nc.Dataset) -> json.encoder:
     polls = get_polls_from_data(nc_data)
     result = {}
-    poll_objects = []
-    data_row = {}
 
-    t = nc_data.variables["time"][:]
+    hours = nc_data.variables["time"][:]
     lats = nc_data.variables["latitude"][:]
     longs = nc_data.variables["longitude"][:]
 
-    for pol in polls:
-        arr = nc_data.variables[pol][:]
-        time, lvl, lat, long = arr.shape
+    for poll in polls:
+        poll_objects = []
+        arr = nc_data.variables[poll][:]
+        arr_time, arr_lvl, arr_lat, arr_long = arr.shape
 
-        for i, j, k in itertools.product(range(time), range(lat), range(long)):
-            value = arr[i, 0, j, k]
-            data_row.update({f'{t[i]}': str(value)})
-            temp_obj = {
-                "lat": str(lats[j]),
-                "long": str(longs[k]),
-                "data": data_row
-            }
-            if temp_obj not in poll_objects:
-                poll_objects.append(temp_obj)
+        for i, j in itertools.product(range(arr_lat), range(arr_long)):
+            data_row = {}
 
-        result[pol] = poll_objects
+            for k in range(arr_time):
+                value = arr[k, 0, i, j]
+                data_row.update({str(hours[k]): str(value)})
+
+                temp_obj = {
+                    "lat": str(lats[i]),
+                    "long": str(longs[j]),
+                    "data": data_row
+                }
+
+                if temp_obj not in poll_objects:
+                    poll_objects.append(temp_obj)
+
+        result[poll] = poll_objects
 
     return json.dumps(result)
 
