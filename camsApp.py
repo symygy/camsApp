@@ -7,8 +7,6 @@ import cdsapi
 from argparse import ArgumentParser
 
 # Lokalizacja pliku z danymi do logowania w serwisie CAMS -> %USERPROFILE%\.cdsapirc
-# Na ten moment pobieram odczyty z punktu położonego najbliżej zadanych koordynatów - w przyszłości można dodać możliwość rozszerzenia obszaru, co będzie się wiązało z koniecznością obróbki większej liczby danych do formatu json
-# PM2.5, PM10
 
 NC_FILENAME = 'ens'
 JSON_FILENAME = 'data'
@@ -126,21 +124,6 @@ def get_polls_from_data(nc_data: nc.Dataset) -> list:
     :return: List of pollutants found in .netCDF dataset file
     """
     return [poll for poll in nc_data.variables.keys() if poll not in ['longitude', 'latitude', 'level', 'time']]
-
-
-# def get_lats_and_longs_from_data(temp_data) -> dict:
-#     # NOT USED
-#     return {
-#         "lat": list(map(lambda x: str(x), temp_data.variables['latitude'][:])),
-#         "long": list(map(lambda x: str(x), temp_data.variables['longitude'][:]))
-#     }
-
-# def get_filename():
-#     # NOT USED
-#     if include_date_in_filename:
-#         return f'{OUTPUT_FILENAME}_{datetime.datetime.now().strftime("%d%m%Y")}'
-#
-#     return OUTPUT_FILENAME
 
 
 if __name__ == '__main__':
